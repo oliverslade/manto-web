@@ -1,4 +1,4 @@
-﻿namespace Openchat.Tests;
+﻿namespace Mento.Tests;
 
 [TestClass]
 public sealed class Test1

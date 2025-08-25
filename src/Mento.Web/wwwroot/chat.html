@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat - Mento</title>
+    <link rel="stylesheet" href="styles.css?v=2" />
+  </head>
+  <body>
+    <nav class="top-nav">
+      <div class="nav-container">
+        <h1 class="logo">Mento</h1>
+        <ul class="nav-links">
+          <li><a href="/">Home</a></li>
+          <li><a href="/chat.html" class="active">Chat</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="container">
+      <!-- Setup Form (shown initially) -->
+      <section class="setup-container" id="setupContainer">
+        <h2>Setup Your AI Chat</h2>
+        <p class="setup-description">
+          Configure your provider and API key to get started.
+        </p>
+
+        <form class="setup-form" id="setupForm">
+          <div class="form-group">
+            <label for="provider">Provider</label>
+            <select id="provider">
+              <option value="anthropic">Anthropic</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="apiKey">API Key</label>
+            <input
+              type="password"
+              id="apiKey"
+              placeholder="Enter your API key..."
+              autocomplete="off"
+              required
+            />
+            <small class="field-help"
+              >Your key is used only to authenticate with the provider.</small
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="model">Model</label>
+            <input
+              type="text"
+              id="model"
+              value="claude-3-5-haiku-latest"
+              placeholder="Model name..."
+              required
+            />
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="storeLocally" />
+              <span class="checkbox-text"
+                >Store key locally (not recommended on shared devices)</span
+              >
+            </label>
+          </div>
+
+          <button type="submit" class="setup-button">Start Chatting</button>
+        </form>
+      </section>
+
+      <!-- Chat Interface (shown after setup) -->
+      <section class="chat-interface" id="chatInterface" style="display: none">
+        <div class="chat-header">
+          <div class="chat-info">
+            <h2 id="chatTitle">Chat with Claude</h2>
+            <p class="chat-subtitle">
+              <span id="providerName">Anthropic</span> •
+              <span id="modelName">claude-3-5-haiku-latest</span>
+              <button class="reconfigure-btn" id="reconfigureBtn">
+                ⚙️ Reconfigure
+              </button>
+            </p>
+          </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+          <div class="welcome-message">
+            <p>
+              👋 Ready to chat! Your conversations are private and never stored
+              on our servers.
+            </p>
+          </div>
+        </div>
+
+        <form class="chat-input-form" id="chatInputForm">
+          <div class="input-container">
+            <textarea
+              id="messageInput"
+              placeholder="Type your message..."
+              rows="1"
+              maxlength="4000"
+            ></textarea>
+            <button type="submit" id="sendBtn" class="send-btn" disabled>
+              <span class="send-icon">↗</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="notice" id="notice" style="display: none">
+          <p>Relay will be wired in next step.</p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      // DOM elements - Setup
+      const setupContainer = document.getElementById("setupContainer");
+      const setupForm = document.getElementById("setupForm");
+      const apiKeyInput = document.getElementById("apiKey");
+      const storeLocallyCheckbox = document.getElementById("storeLocally");
+      const modelInput = document.getElementById("model");
+      const providerSelect = document.getElementById("provider");
+
+      // DOM elements - Chat
+      const chatInterface = document.getElementById("chatInterface");
+      const chatInputForm = document.getElementById("chatInputForm");
+      const messageInput = document.getElementById("messageInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const chatMessages = document.getElementById("chatMessages");
+      const reconfigureBtn = document.getElementById("reconfigureBtn");
+      const providerName = document.getElementById("providerName");
+      const modelName = document.getElementById("modelName");
+      const notice = document.getElementById("notice");
+
+      // Storage keys
+      const LOCAL_STORAGE_KEY = "mento_api_key";
+      const SESSION_STORAGE_KEY = "mento_api_key_session";
+      const CONFIG_KEY = "mento_config";
+
+      // Current config
+      let currentConfig = null;
+
+      // Initialize page
+      function initializePage() {
+        // Check if we have a saved configuration
+        const savedConfig = localStorage.getItem(CONFIG_KEY);
+        if (savedConfig) {
+          try {
+            currentConfig = JSON.parse(savedConfig);
+            showChatInterface();
+            return;
+          } catch (e) {
+            // Invalid config, show setup
+          }
+        }
+
+        // Check if key exists in localStorage for setup form
+        const storedKey = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (storedKey) {
+          apiKeyInput.value = storedKey;
+          storeLocallyCheckbox.checked = true;
+        }
+
+        showSetupForm();
+      }
+
+      function showSetupForm() {
+        setupContainer.style.display = "block";
+        chatInterface.style.display = "none";
+      }
+
+      function showChatInterface() {
+        setupContainer.style.display = "none";
+        chatInterface.style.display = "block";
+
+        if (currentConfig) {
+          providerName.textContent =
+            currentConfig.provider === "anthropic"
+              ? "Anthropic"
+              : currentConfig.provider;
+          modelName.textContent = currentConfig.model;
+        }
+
+        // Focus message input
+        messageInput.focus();
+        updateSendButtonState();
+      }
+
+      // Handle API key storage
+      function storeApiKey(key, storeLocally) {
+        if (storeLocally) {
+          localStorage.setItem(LOCAL_STORAGE_KEY, key);
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        } else {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, key);
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+      }
+
+      // Update send button state for chat
+      function updateSendButtonState() {
+        if (sendBtn) {
+          const hasMessage = messageInput.value.trim().length > 0;
+          sendBtn.disabled = !hasMessage;
+        }
+      }
+
+      // Auto-resize textarea
+      function autoResizeTextarea(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = Math.min(textarea.scrollHeight, 120) + "px";
+      }
+
+      // Add message to chat
+      function addMessage(content, isUser = false) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${
+          isUser ? "user-message" : "ai-message"
+        }`;
+
+        const messageContent = document.createElement("div");
+        messageContent.className = "message-content";
+        messageContent.textContent = content;
+
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
+
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      // Event listeners - Setup
+      setupForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const key = apiKeyInput.value.trim();
+        const provider = providerSelect.value;
+        const model = modelInput.value.trim();
+        const storeLocally = storeLocallyCheckbox.checked;
+
+        if (!key || !model) {
+          return;
+        }
+
+        // Store the key
+        storeApiKey(key, storeLocally);
+
+        // Save configuration
+        currentConfig = { provider, model };
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(currentConfig));
+
+        // Show chat interface
+        showChatInterface();
+      });
+
+      // Event listeners - Chat
+      messageInput.addEventListener("input", function () {
+        autoResizeTextarea(this);
+        updateSendButtonState();
+      });
+
+      messageInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          chatInputForm.dispatchEvent(new Event("submit"));
+        }
+      });
+
+      chatInputForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        // Add user message
+        addMessage(message, true);
+
+        // Clear input
+        messageInput.value = "";
+        autoResizeTextarea(messageInput);
+        updateSendButtonState();
+
+        // Show notice (placeholder for actual API call)
+        notice.style.display = "block";
+
+        // Hide notice after 3 seconds
+        setTimeout(() => {
+          notice.style.display = "none";
+        }, 3000);
+      });
+
+      reconfigureBtn.addEventListener("click", function () {
+        // Clear config and show setup
+        localStorage.removeItem(CONFIG_KEY);
+        currentConfig = null;
+        showSetupForm();
+      });
+
+      // Initialize when page loads
+      document.addEventListener("DOMContentLoaded", initializePage);
+    </script>
+  </body>
+</html>

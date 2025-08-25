@@ -1,11 +1,11 @@
-# Openchat
+# Mento
 
 A privacy-first web client for chatting with LLMs using your own API key.
 No accounts. No server-side storage. No telemetry.
 
 ## Why this exists
 
-Most AI chat apps either keep your data, require accounts, or hide how requests are handled. Openchat is the opposite: a minimal relay + simple UI that lets you talk to a model without giving any of your data to a third party.
+Most AI chat apps either keep your data, require accounts, or hide how requests are handled. Mento is the opposite: a minimal relay + simple UI that lets you talk to a model without giving any of your data to a third party.
 
 ## Why API-direct matters for privacy
 
@@ -16,9 +16,9 @@ When you use provider apps (like Claude.ai, ChatGPT web interface, etc.), your c
 - Potentially analyzed for user profiling
 - Subject to future policy changes around ads or data use
 
-**With Openchat + direct API access:**
+**With Mento + direct API access:**
 
-- Your conversations never touch Openchat servers—they go directly from your browser to the AI provider
+- Your conversations never touch Mento servers—they go directly from your browser to the AI provider
 - API calls are typically not stored long-term by providers (unlike web app conversations)
 - No conversation history builds up in anyone's system
 - You maintain full control over your data—it lives only on your machine

@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Openchat.Web\Openchat.Web.csproj" />
+    <ProjectReference Include="..\..\src\Mento.Web\Mento.Web.csproj" />
   </ItemGroup>
 
 </Project>

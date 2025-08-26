@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Manto.Web.Configuration;
 
 namespace Manto.Web.Services;
@@ -8,69 +7,34 @@ public interface IAnthropicApiService
     Task<ApiResult> GetModelsAsync(string apiKey, string requestId);
 }
 
-public class AnthropicApiService : IAnthropicApiService
+public class AnthropicApiService : BaseAnthropicService, IAnthropicApiService
 {
-    private readonly HttpClient _httpClient;
-    private readonly ILogger<AnthropicApiService> _logger;
-    private readonly ProviderConfiguration _providerConfig;
-
     public AnthropicApiService(HttpClient httpClient, ILogger<AnthropicApiService> logger, ProviderConfiguration providerConfig)
+        : base(httpClient, logger, providerConfig)
     {
-        _httpClient = httpClient;
-        _logger = logger;
-        _providerConfig = providerConfig;
     }
 
     public async Task<ApiResult> GetModelsAsync(string apiKey, string requestId)
     {
-        try
+        return await ExecuteWithErrorHandling(async () =>
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_providerConfig.ApiEndpoint}/v1/models");
-            request.Headers.Add("x-api-key", apiKey);
-            request.Headers.Add("anthropic-version", _providerConfig.ApiVersion);
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            var response = await _httpClient.SendAsync(request);
-            stopwatch.Stop();
-
-            if (stopwatch.ElapsedMilliseconds > 2000)
-            {
-                _logger.LogWarning("Slow Anthropic API response. RequestId: {RequestId}, Duration: {Duration}ms", 
-                    requestId, stopwatch.ElapsedMilliseconds);
-            }
+            using var request = CreateRequest(HttpMethod.Get, "/v1/models", apiKey);
+            var response = await HttpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("Anthropic API error. RequestId: {RequestId}, Status: {StatusCode}, Error: {Error}", 
+                Logger.LogError("Anthropic API error. RequestId: {RequestId}, Status: {StatusCode}, Error: {Error}", 
                     requestId, (int)response.StatusCode, errorContent);
-                return ApiResult.Failure($"Failed to fetch models", errorContent);
+                return ApiResult.Failure("Failed to fetch models", errorContent);
             }
 
             var modelsContent = await response.Content.ReadAsStringAsync();
             return ApiResult.Success(modelsContent);
-        }
-        catch (TaskCanceledException)
-        {
-            _logger.LogError("Anthropic API timeout. RequestId: {RequestId}", requestId);
-            return ApiResult.Failure("Request timed out");
-        }
-        catch (HttpRequestException ex)
-        {
-            _logger.LogError(ex, "Network error calling Anthropic API. RequestId: {RequestId}", requestId);
-            return ApiResult.Failure("Network error", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error fetching models. RequestId: {RequestId}", requestId);
-            return ApiResult.Failure("Failed to fetch models", ex.Message);
-        }
+        }, requestId, "GetModels");
     }
 
-    public static string GenerateRequestId()
-    {
-        return Guid.NewGuid().ToString("N")[..8];
-    }
+
 }
 
 public class ApiResult

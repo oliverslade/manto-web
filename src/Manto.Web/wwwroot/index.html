@@ -3,177 +3,174 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manto - Private Multi-Provider AI Chat</title>
+    <title>Manto - Private AI Chat</title>
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="modern-layout no-nav">
-    <!-- Hero Section -->
-    <main class="hero-main">
-      <div class="hero-content">
-        <div class="hero-text">
-          <h1 class="hero-title">
-            Private AI Chat<br />
-            <span class="hero-accent">Multiple Providers</span>
-          </h1>
-          <p class="hero-subtitle">
-            Chat with Claude, ChatGPT, and other AI models in one secure
-            platform. No accounts, no tracking, complete privacy.
-          </p>
-          <div class="hero-actions">
-            <a href="/chat.html" class="primary-button">
-              <span>Start Chatting</span>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </a>
-            <div class="hero-note">
-              No signup required • Bring your own API key
-            </div>
+  <body class="modern-layout">
+    <header class="modern-header">
+      <div class="header-content">
+        <div class="model-selector">
+          <select id="modelSelector" class="model-dropdown">
+            <option value="">Select Model...</option>
+          </select>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="newChatBtn" title="New Chat">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="setup-modal" id="setupModal">
+      <div class="setup-content">
+        <div class="setup-header">
+          <h2>Welcome to Manto</h2>
+          <p>Configure your AI provider to get started</p>
+        </div>
+
+        <form class="setup-form" id="setupForm" novalidate>
+          <div class="form-group">
+            <label for="setupProvider">Provider</label>
+            <div
+              id="validationMessage"
+              class="validation-message"
+              style="display: none"
+            ></div>
+            <select id="setupProvider" class="form-control">
+              <option value="">Choose a provider...</option>
+            </select>
           </div>
+
+          <div class="form-group">
+            <label for="apiKey">API Key</label>
+            <div
+              id="apiKeyValidationMessage"
+              class="validation-message"
+              style="display: none"
+            ></div>
+            <input
+              type="text"
+              id="apiKey"
+              class="form-control"
+              placeholder="Enter your API key..."
+              autocomplete="off"
+            />
+          </div>
+
+          <button type="submit" class="setup-button">Start Chatting</button>
+        </form>
+
+        <div class="setup-footer">
+          <a href="about.html" class="about-link">Learn more about Manto</a>
+        </div>
+      </div>
+    </div>
+
+    <main class="chat-main" id="chatMain" style="display: none">
+      <!-- Privacy Notice (shown when no messages) -->
+      <div class="privacy-notice" id="privacyNotice">
+        <div class="privacy-content">
+          <div class="privacy-icon">
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none">
+              <defs>
+                <linearGradient
+                  id="shieldGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    style="stop-color: #6b46c1; stop-opacity: 0.3"
+                  />
+                  <stop
+                    offset="100%"
+                    style="stop-color: #6b46c1; stop-opacity: 0.1"
+                  />
+                </linearGradient>
+              </defs>
+              <path
+                d="M12 2.5L20.5 6.2V13C20.5 17.5 16.8 20.8 12 20.8C7.2 20.8 3.5 17.5 3.5 13V6.2L12 2.5Z"
+                fill="url(#shieldGradient)"
+                stroke="#6B46C1"
+                stroke-width="1.5"
+              />
+              <circle cx="12" cy="11" r="2" fill="#6B46C1" />
+              <path
+                d="M9.5 11L11 12.5L14.5 9"
+                stroke="white"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <h3>
+            Your chats are private, and are never saved or used to train AI
+            models
+          </h3>
+          <button class="hide-tips" id="hideTips">Hide Tips</button>
         </div>
       </div>
 
-      <!-- Two Key Benefits -->
-      <section class="benefits-section">
-        <div class="benefits-grid">
-          <!-- Benefit 1: Privacy First -->
-          <div class="benefit-card primary">
-            <div class="benefit-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M12 2.5L20.5 6.2V13C20.5 17.5 16.8 20.8 12 20.8C7.2 20.8 3.5 17.5 3.5 13V6.2L12 2.5Z"
-                  fill="currentColor"
-                  opacity="0.1"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                />
-                <circle cx="12" cy="11" r="2" fill="currentColor" />
-                <path
-                  d="M9.5 11L11 12.5L14.5 9"
-                  stroke="white"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </div>
-            <h3>Complete Privacy</h3>
-            <p>
-              Your conversations never touch our servers. No accounts, no
-              tracking, no data collection. Your chats go directly from your
-              browser to the AI provider.
-            </p>
-            <ul class="benefit-list">
-              <li>🔒 No account registration</li>
-              <li>🔒 No conversation storage</li>
-              <li>🔒 No analytics or tracking</li>
-              <li>🔒 API keys stored in memory only</li>
-            </ul>
-          </div>
+      <div
+        class="messages-container"
+        id="messagesContainer"
+        style="display: none"
+      >
+        <div class="chat-messages" id="chatMessages"></div>
+      </div>
 
-          <!-- Benefit 2: Multi-Provider -->
-          <div class="benefit-card secondary">
-            <div class="benefit-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="3"
-                  fill="currentColor"
-                  opacity="0.2"
-                />
-                <circle cx="12" cy="5" r="2" fill="currentColor" />
-                <circle cx="19" cy="12" r="2" fill="currentColor" />
-                <circle cx="12" cy="19" r="2" fill="currentColor" />
-                <circle cx="5" cy="12" r="2" fill="currentColor" />
-                <path
-                  d="M12 7v3M17 12h-3M12 17v-3M7 12h3"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </div>
-            <h3>All Providers, One Platform</h3>
-            <p>
-              Switch between Claude, GPT, and other AI models seamlessly.
-              Compare responses, use different models for different tasks, all
-              from one clean interface.
-            </p>
-            <ul class="benefit-list">
-              <li>🤖 Anthropic Claude (Haiku, Sonnet, Opus)</li>
-              <li>🤖 OpenAI GPT (GPT-4, GPT-3.5)</li>
-              <li>🤖 More providers coming soon</li>
-              <li>🔄 Switch models instantly</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <!-- How It Works -->
-      <section class="how-it-works">
-        <div class="section-header">
-          <h2>How It Works</h2>
-          <p>Get started in under 30 seconds</p>
-        </div>
-        <div class="steps-grid">
-          <div class="step">
-            <div class="step-number">1</div>
-            <h4>Choose Provider</h4>
-            <p>Select your preferred AI provider (Anthropic, OpenAI, etc.)</p>
-          </div>
-          <div class="step">
-            <div class="step-number">2</div>
-            <h4>Add Your Key</h4>
-            <p>Paste your API key - stored in memory only</p>
-          </div>
-          <div class="step">
-            <div class="step-number">3</div>
-            <h4>Start Chatting</h4>
-            <p>
-              Your messages go directly to the AI provider. No middleman, no
-              storage.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Why Choose Manto -->
-      <section class="why-choose">
-        <div class="why-content">
-          <h2>Why choose Manto?</h2>
-          <div class="reasons-grid">
-            <div class="reason">
-              <h4>🔐 Zero data retention</h4>
-              <p>
-                Your conversations never hit our servers. Direct API calls mean
-                true privacy.
-              </p>
-            </div>
-            <div class="reason">
-              <h4>⚡ No vendor lock-in</h4>
-              <p>
-                Switch between Claude, GPT, and others instantly. Your choice,
-                your control.
-              </p>
-            </div>
-            <div class="reason">
-              <h4>🚀 No rate limits</h4>
-              <p>
-                Use your own API quotas. No artificial restrictions or premium
-                tiers.
-              </p>
+      <div class="chat-input-section">
+        <form class="chat-input-form" id="chatInputForm">
+          <div class="input-wrapper">
+            <div class="input-container">
+              <textarea
+                id="messageInput"
+                placeholder="What's on your mind?"
+                rows="1"
+                maxlength="4000"
+              ></textarea>
+              <div class="input-actions">
+                <button type="submit" id="sendBtn" class="send-btn" disabled>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
+        </form>
+        <div class="chat-disclaimer">
+          Your chat is private. AI chats may return inaccurate or offensive
+          information.
         </div>
-      </section>
+      </div>
     </main>
+
+    <script src="marked.min.js"></script>
+    <script src="purify.min.js"></script>
+    <script src="/config.js"></script>
+    <script src="chat.js"></script>
   </body>
 </html>

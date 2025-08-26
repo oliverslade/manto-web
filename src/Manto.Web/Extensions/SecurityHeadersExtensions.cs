@@ -14,36 +14,42 @@ public static class SecurityHeadersExtensions
 public class SecurityHeadersMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ApplicationSettings _settings;
+    private readonly string _cspHeader;
+    private static readonly Dictionary<string, string> _staticHeaders = new()
+    {
+        ["X-Content-Type-Options"] = "nosniff",
+        ["Referrer-Policy"] = "no-referrer",
+        ["Permissions-Policy"] = "geolocation=()",
+        ["X-Frame-Options"] = "DENY",
+        ["Cross-Origin-Opener-Policy"] = "same-origin",
+        ["Cross-Origin-Resource-Policy"] = "same-site",
+        ["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload",
+        ["X-XSS-Protection"] = "1; mode=block",
+        ["Cross-Origin-Embedder-Policy"] = "require-corp"
+    };
 
     public SecurityHeadersMiddleware(RequestDelegate next, IOptions<ApplicationSettings> settings)
     {
         _next = next;
-        _settings = settings.Value;
+        
+        var allowedEndpoints = string.Join(" ", settings.Value.Security.AllowedApiEndpoints);
+        _cspHeader = "default-src 'self'; " +
+                    $"connect-src 'self' {allowedEndpoints}; " +
+                    "style-src 'self' 'unsafe-inline'; " +
+                    "script-src 'self'; " +
+                    "img-src 'self'; " +
+                    "object-src 'none'; " +
+                    "base-uri 'self'";
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
-        context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
-        context.Response.Headers.Append("Referrer-Policy", "no-referrer");
-        context.Response.Headers.Append("Permissions-Policy", "geolocation=()");
-        context.Response.Headers.Append("X-Frame-Options", "DENY");
-        context.Response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin");
-        context.Response.Headers.Append("Cross-Origin-Resource-Policy", "same-site");
-
-        var allowedEndpoints = string.Join(" ", _settings.Security.AllowedApiEndpoints);
-        context.Response.Headers.Append("Content-Security-Policy",
-            "default-src 'self'; " +
-            $"connect-src 'self' {allowedEndpoints}; " +
-            "style-src 'self' 'unsafe-inline'; " +
-            "script-src 'self'; " +
-            "img-src 'self'; " +
-            "object-src 'none'; " +
-            "base-uri 'self'");
-
-        context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-        context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
-        context.Response.Headers.Append("Cross-Origin-Embedder-Policy", "require-corp");
+        foreach (var header in _staticHeaders)
+        {
+            context.Response.Headers.Append(header.Key, header.Value);
+        }
+        
+        context.Response.Headers.Append("Content-Security-Policy", _cspHeader);
 
         await _next(context);
     }

@@ -1,5 +1,7 @@
 # Manto
 
+Manto means a type of cloak or blanket in the Galician language.
+
 A privacy-first web client for chatting with LLMs using your own API key.
 No accounts. No server-side storage. No telemetry.
 

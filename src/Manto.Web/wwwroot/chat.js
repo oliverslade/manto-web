@@ -44,7 +44,8 @@ function loadConfig() {
         {
           name: "anthropic",
           displayName: "Anthropic",
-          defaultModel: "claude-3-5-haiku-latest",
+          apiEndpoint: "https://api.anthropic.com",
+          apiVersion: "2023-06-01",
         },
       ],
     };
@@ -67,16 +68,61 @@ function populateProviders() {
   });
 }
 
-function updateModelSelector(providerName) {
+function updateModelSelector(providerName, models = []) {
   const select = elements.modelSelector;
   if (!select) return;
 
   const provider = config.providers.find((p) => p.name === providerName);
   if (!provider) return;
 
-  select.innerHTML = `<option value="${provider.defaultModel}" selected>
-    ${provider.displayName} ${provider.defaultModel}
-  </option>`;
+  if (models.length === 0) {
+    select.innerHTML = '<option value="">Select Model...</option>';
+    return;
+  }
+
+  select.innerHTML = '<option value="">Select Model...</option>';
+
+  models.forEach((model) => {
+    const option = document.createElement("option");
+    option.value = model.id;
+    option.textContent = model.display_name;
+    option.title = `Created: ${new Date(
+      model.created_at
+    ).toLocaleDateString()}`;
+    select.appendChild(option);
+  });
+
+  if (models.length > 0) {
+    select.selectedIndex = 1;
+  }
+}
+
+async function fetchModels(providerName, apiKey) {
+  const provider = config.providers.find((p) => p.name === providerName);
+  if (!provider) {
+    throw new Error("Provider not found");
+  }
+
+  try {
+    const response = await fetch("/api/models", {
+      method: "GET",
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to fetch models");
+    }
+
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error("Error fetching models:", error);
+    throw error;
+  }
 }
 
 function setupEventListeners() {
@@ -97,7 +143,7 @@ function setupEventListeners() {
   elements.modelSelector?.addEventListener("change", clearChat);
 }
 
-function handleSetup(e) {
+async function handleSetup(e) {
   e.preventDefault();
 
   const provider = elements.setupProvider.value;
@@ -118,11 +164,30 @@ function handleSetup(e) {
     return;
   }
 
-  apiKey = key;
-  currentProvider = provider;
-  updateModelSelector(provider);
-  hideSetup();
-  clearChat();
+  const submitBtn = elements.setupForm.querySelector('button[type="submit"]');
+  const originalText = submitBtn.textContent;
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Loading models...";
+
+  try {
+    const models = await fetchModels(provider, key);
+
+    if (models.length === 0) {
+      alert("No models available for this API key");
+      return;
+    }
+
+    apiKey = key;
+    currentProvider = provider;
+    updateModelSelector(provider, models);
+    hideSetup();
+    clearChat();
+  } catch (error) {
+    alert(`Failed to load models: ${error.message}`);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
+  }
 }
 
 function handleMessage(e) {

@@ -30,6 +30,6 @@ public class ProviderConfiguration
 {
     public string Name { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string DefaultModel { get; set; } = string.Empty;
     public string ApiEndpoint { get; set; } = string.Empty;
+    public string ApiVersion { get; set; } = string.Empty;
 }

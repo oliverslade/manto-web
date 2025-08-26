@@ -24,8 +24,13 @@ public class AppIntegrationTests
                     {
                         settings.Features.SupportedProviders = new List<ProviderConfiguration>
                         {
-                            new() { Name = "anthropic", DisplayName = "Anthropic", DefaultModel = "claude-3-5-haiku-latest" },
-                            new() { Name = "openai", DisplayName = "OpenAI", DefaultModel = "gpt-4" }
+                            new() 
+                            { 
+                                Name = "anthropic", 
+                                DisplayName = "Anthropic", 
+                                ApiEndpoint = "https://api.anthropic.com",
+                                ApiVersion = "2023-06-01"
+                            }
                         };
                     });
                 });
@@ -54,7 +59,7 @@ public class AppIntegrationTests
     }
 
     [TestMethod]
-    public async Task Config_ShouldReturnValidJavaScript()
+    public async Task Config_ReturnsValidConfigurationForFrontend()
     {
         var response = await _client.GetAsync("/config.js");
         
@@ -63,28 +68,33 @@ public class AppIntegrationTests
         
         var content = await response.Content.ReadAsStringAsync();
         content.Should().StartWith("window.MantoConfig = ");
-        content.Should().Contain("providers");
-    }
-
-    [TestMethod]
-    public async Task Config_ShouldContainProviders()
-    {
-        var response = await _client.GetAsync("/config.js");
-        var content = await response.Content.ReadAsStringAsync();
-        
         content.Should().Contain("anthropic");
-        content.Should().Contain("openai");
-    }
-
-    [TestMethod]
-    public async Task Config_ShouldNotExposeSensitiveData()
-    {
-        var response = await _client.GetAsync("/config.js");
-        var content = await response.Content.ReadAsStringAsync();
         
-        content.Should().NotContain("api.anthropic.com");
         content.Should().NotContain("8080");
         content.Should().NotContain("EnableHsts");
+    }
+
+    [TestMethod]
+    public async Task ModelsApi_WithoutApiKey_Returns400()
+    {
+        var response = await _client.GetAsync("/api/models");
+        
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("API key required");
+    }
+
+    [TestMethod]
+    public async Task ModelsApi_WithInvalidApiKey_Returns400()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/models");
+        request.Headers.Add("x-api-key", "invalid-key");
+        
+        var response = await _client.SendAsync(request);
+        
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+        var content = await response.Content.ReadAsStringAsync();
+        content.Should().Contain("Failed to fetch models");
     }
 
     [TestMethod]

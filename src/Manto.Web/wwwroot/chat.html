@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat - Manto</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="modern-layout">
+    <!-- Modern Header -->
+    <header class="modern-header">
+      <div class="header-content">
+        <div class="model-selector">
+          <select id="modelSelector" class="model-dropdown">
+            <option value="">Select Model...</option>
+          </select>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="newChatBtn" title="New Chat">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Setup Modal (shown initially) -->
+    <div class="setup-modal" id="setupModal">
+      <div class="setup-content">
+        <div class="setup-header">
+          <h2>Welcome to Manto</h2>
+          <p>Configure your AI provider to get started</p>
+        </div>
+
+        <form class="setup-form" id="setupForm">
+          <div class="form-group">
+            <label for="setupProvider">Provider</label>
+            <select id="setupProvider" class="form-control" required>
+              <option value="">Choose a provider...</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="apiKey">API Key</label>
+            <input
+              type="password"
+              id="apiKey"
+              class="form-control"
+              placeholder="Enter your API key..."
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <button type="submit" class="setup-button">Start Chatting</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Chat Interface -->
+    <main class="chat-main" id="chatMain" style="display: none">
+      <!-- Privacy Notice (shown when no messages) -->
+      <div class="privacy-notice" id="privacyNotice">
+        <div class="privacy-content">
+          <div class="privacy-icon">
+            <svg width="72" height="72" viewBox="0 0 24 24" fill="none">
+              <defs>
+                <linearGradient
+                  id="shieldGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    style="stop-color: #6b46c1; stop-opacity: 0.3"
+                  />
+                  <stop
+                    offset="100%"
+                    style="stop-color: #6b46c1; stop-opacity: 0.1"
+                  />
+                </linearGradient>
+              </defs>
+              <path
+                d="M12 2.5L20.5 6.2V13C20.5 17.5 16.8 20.8 12 20.8C7.2 20.8 3.5 17.5 3.5 13V6.2L12 2.5Z"
+                fill="url(#shieldGradient)"
+                stroke="#6B46C1"
+                stroke-width="1.5"
+              />
+              <circle cx="12" cy="11" r="2" fill="#6B46C1" />
+              <path
+                d="M9.5 11L11 12.5L14.5 9"
+                stroke="white"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <h3>
+            Your chats are private, and are never saved or used to train AI
+            models
+          </h3>
+          <button class="hide-tips" id="hideTips">Hide Tips</button>
+        </div>
+      </div>
+
+      <!-- Messages Container -->
+      <div
+        class="messages-container"
+        id="messagesContainer"
+        style="display: none"
+      >
+        <div class="chat-messages" id="chatMessages"></div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-section">
+        <form class="chat-input-form" id="chatInputForm">
+          <div class="input-wrapper">
+            <div class="input-container">
+              <textarea
+                id="messageInput"
+                placeholder="What's on your mind?"
+                rows="1"
+                maxlength="4000"
+                data-max-length="4000"
+              ></textarea>
+              <div class="input-actions">
+                <button
+                  type="button"
+                  class="action-btn"
+                  id="searchBtn"
+                  title="Search"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                  </svg>
+                </button>
+                <button type="submit" id="sendBtn" class="send-btn" disabled>
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2L15 22L11 13L2 9L22 2Z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+        <div class="chat-disclaimer">
+          Your chat is private. AI chats may return inaccurate or offensive
+          information.
+        </div>
+      </div>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="chat.js"></script>
+  </body>
+</html>

@@ -76,21 +76,101 @@ Start with Anthropic (default model: claude-3-5-haiku-latest). You can change th
 ### Running the Application
 
 ```bash
-dotnet run
+# Build
+go build -o manto-web .
+
+# Run
+./manto-web
+
+# Or run directly
+go run .
 ```
 
 The application will be available at `http://localhost:8080/`
 
+### Building from Source
+
+Requirements:
+
+- Go 1.21 or later
+
+```bash
+git clone <repository>
+cd manto-web
+go mod download
+go build -o manto-web ./cmd/manto-web
+```
+
 ### Endpoints
 
 - `GET /` - Homepage
+- `GET /config.js` - Client configuration
+- `GET /api/models` - Get available models (requires API key)
+- `POST /api/messages` - Send message to AI (requires API key)
 - `GET /healthz` - Health check (returns 204)
 
-### Environment Configuration
+### Configuration
 
-The application binds to port 8080 by default. You can override this with:
+Manto uses a modern `.env` file approach for configuration. The application automatically loads configuration from:
+
+1. `.env.{environment}.local` (e.g., `.env.development.local`)
+2. `.env.{environment}` (e.g., `.env.development`)
+3. `.env.local`
+4. `.env`
+
+Environment is determined by `GO_ENV` or `ENVIRONMENT` variables (defaults to `production`).
+
+#### Environment Variables
+
+**Server Configuration:**
+
+- `PORT` - Server port (default: 8080)
+- `HOST` - Server host (default: 0.0.0.0)
+- `READ_TIMEOUT` - Server read timeout (default: 30s)
+- `WRITE_TIMEOUT` - Server write timeout (default: 30s)
+
+**Logging:**
+
+- `LOG_LEVEL` - Log level: debug, info, warn, error (default: info)
+- `LOG_FORMAT` - Log format: json, text (default: json)
+- `LOG_INCLUDE_TIMESTAMP` - Include timestamps (default: true)
+- `LOG_INCLUDE_SOURCE` - Include source code location (default: false)
+
+**Anthropic API:**
+
+- `ANTHROPIC_API_KEY` - Your Anthropic API key (optional, can be provided via UI)
+- `ANTHROPIC_BASE_URL` - API base URL (default: https://api.anthropic.com)
+- `ANTHROPIC_API_VERSION` - API version (default: 2023-06-01)
+- `ANTHROPIC_TIMEOUT` - Request timeout (default: 60s)
+- `ANTHROPIC_MAX_TOKENS` - Max tokens per request (default: 1024)
+- `ANTHROPIC_TEMPERATURE` - Temperature setting (default: 0.7)
+
+**Security:**
+
+- `ENABLE_HSTS` - Enable HTTPS Strict Transport Security (default: true)
+- `ALLOWED_API_ENDPOINTS` - Comma-separated list of allowed API endpoints
+- `API_KEY_MIN_LENGTH` - Minimum API key length (default: 10)
+
+**Validation:**
+
+- `MAX_MESSAGE_LENGTH` - Maximum message length (default: 4000)
+- `MAX_FILE_SIZE` - Maximum file upload size in bytes (default: 10485760)
+
+#### Example Configuration
+
+Copy `env.example` to `.env` and modify as needed:
 
 ```bash
-export ASPNETCORE_URLS=http://+:8080
-dotnet run
+cp env.example .env
+# Edit .env with your preferred settings
 ```
+
+For development:
+
+```bash
+# Set development environment
+export GO_ENV=development
+./manto-web
+```
+
+This will automatically load `.env.development` if it exists, falling back to `.env`.

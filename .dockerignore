@@ -1,0 +1,15 @@
+.git
+.gitignore
+README.md
+.env
+.env.*
+*_test.go
+integration_test.go
+manto-web
+.DS_Store
+Thumbs.db
+.idea
+.vscode
+*.swp
+*.swo
+Makefile

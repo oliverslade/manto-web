@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/manto/manto-web/internal/config"
 )
@@ -21,16 +20,12 @@ func NewAnthropicService(cfg *config.Config) *AnthropicService {
 	return &AnthropicService{
 		config: cfg,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: cfg.Anthropic.Timeout.Duration,
 		},
 	}
 }
 
-func GenerateRequestID() string {
-	return fmt.Sprintf("%d", time.Now().UnixNano()%100000000)
-}
-
-func (s *AnthropicService) GetModels(apiKey string, requestID string) (string, error) {
+func (s *AnthropicService) GetModels(apiKey string) (string, error) {
 	req, err := http.NewRequest("GET", s.config.Anthropic.BaseURL+"/v1/models", nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
@@ -56,7 +51,7 @@ func (s *AnthropicService) GetModels(apiKey string, requestID string) (string, e
 	return string(body), nil
 }
 
-func (s *AnthropicService) SendMessage(apiKey string, request *MessageRequest, requestID string) (*MessageResponse, error) {
+func (s *AnthropicService) SendMessage(apiKey string, request *MessageRequest) (*MessageResponse, error) {
 	jsonData, err := json.Marshal(request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)

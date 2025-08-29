@@ -152,7 +152,7 @@ func TestMessagesHandlerBehavior(t *testing.T) {
 			method:         "POST",
 			body:           `{"model":"claude-3-haiku","messages":[{"role":"user","content":"hello"}],"max_tokens":100}`,
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "API key required",
+			expectedError:  "Invalid API key format",
 		},
 		{
 			name:   "short API key returns 400",
@@ -256,7 +256,7 @@ func TestModelsHandlerBehavior(t *testing.T) {
 			name:           "missing API key returns 400",
 			method:         "GET",
 			expectedStatus: http.StatusBadRequest,
-			expectedError:  "API key required",
+			expectedError:  "Invalid API key format",
 		},
 		{
 			name:           "valid API key format passes validation",

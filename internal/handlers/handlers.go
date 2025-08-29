@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/manto/manto-web/internal/config"
 	"github.com/manto/manto-web/internal/services"
@@ -54,15 +53,13 @@ func (h *APIHandlers) ConfigHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandlers) ModelsHandler(w http.ResponseWriter, r *http.Request) {
-	requestID := services.GenerateRequestID()
-
 	apiKey := r.Header.Get("x-api-key")
-	if apiKey == "" {
-		writeJSONError(w, http.StatusBadRequest, "API key required", "")
+	if !h.anthropicService.ValidateAPIKey(apiKey) {
+		writeJSONError(w, http.StatusBadRequest, "Invalid API key format", "")
 		return
 	}
 
-	modelsData, err := h.anthropicService.GetModels(apiKey, requestID)
+	modelsData, err := h.anthropicService.GetModels(apiKey)
 	if err != nil {
 		writeJSONError(w, http.StatusBadRequest, err.Error(), "")
 		return
@@ -73,15 +70,8 @@ func (h *APIHandlers) ModelsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *APIHandlers) MessagesHandler(w http.ResponseWriter, r *http.Request) {
-	requestID := services.GenerateRequestID()
-
 	apiKey := r.Header.Get("x-api-key")
-	if apiKey == "" {
-		writeJSONError(w, http.StatusBadRequest, "API key required", "")
-		return
-	}
-
-	if len(apiKey) < h.config.Security.APIKeyMinLength {
+	if !h.anthropicService.ValidateAPIKey(apiKey) {
 		writeJSONError(w, http.StatusBadRequest, "Invalid API key format", "")
 		return
 	}
@@ -115,17 +105,9 @@ func (h *APIHandlers) MessagesHandler(w http.ResponseWriter, r *http.Request) {
 	messageRequest.Temperature = &h.config.Anthropic.Temperature
 	messageRequest.System = &h.config.Anthropic.SystemMessage
 
-	response, err := h.anthropicService.SendMessage(apiKey, &messageRequest, requestID)
+	response, err := h.anthropicService.SendMessage(apiKey, &messageRequest)
 	if err != nil {
-		errMsg := err.Error()
-		if strings.Contains(errMsg, "Invalid API key") ||
-			strings.Contains(errMsg, "Invalid request format") ||
-			strings.Contains(errMsg, "Rate limit exceeded") ||
-			strings.Contains(errMsg, "Service temporarily unavailable") {
-			writeJSONError(w, http.StatusBadRequest, errMsg, "")
-		} else {
-			writeJSONError(w, http.StatusBadRequest, "Failed to send message", errMsg)
-		}
+		writeJSONError(w, http.StatusBadRequest, err.Error(), "")
 		return
 	}
 

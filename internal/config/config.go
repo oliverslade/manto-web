@@ -160,7 +160,7 @@ func setDefaultValues(v reflect.Value, t reflect.Type) error {
 			continue
 		}
 
-		if field.Kind() == reflect.Struct && fieldType.Type.String() != "time.Duration" {
+		if field.Kind() == reflect.Struct && fieldType.Type != reflect.TypeOf(Duration{}) {
 			if err := setDefaultValues(field, fieldType.Type); err != nil {
 				return err
 			}

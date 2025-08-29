@@ -17,7 +17,7 @@ import (
 )
 
 //go:embed static/*
-var staticFS embed.FS
+var embeddedStatic embed.FS
 
 func main() {
 
@@ -45,17 +45,25 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	staticFS, err := fs.Sub(staticFS, "static")
+	sub, err := fs.Sub(embeddedStatic, "static")
 	if err != nil {
 		log.Fatalf("Failed to create sub filesystem: %v", err)
 	}
 
-	fileServer := http.FileServer(http.FS(staticFS))
+	fileServer := http.FileServer(http.FS(sub))
 	r.Handle("/*", fileServer)
 
 	addr := fmt.Sprintf(":%d", port)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  cfg.Server.ReadTimeout.Duration,
+		WriteTimeout: cfg.Server.WriteTimeout.Duration,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	log.Printf("Manto starting on port %d (%s)", port, config.GetEnvironment())
-	if err := http.ListenAndServe(addr, r); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

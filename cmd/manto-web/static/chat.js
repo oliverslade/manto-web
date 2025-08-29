@@ -287,6 +287,7 @@ const ChatApp = {
     this.elements.modelSelector?.addEventListener("change", (e) => {
       this.state.currentModel = e.target.value;
       this.clearChat();
+      this.updateSendButton();
     });
   },
 
@@ -446,9 +447,9 @@ const ChatApp = {
     loadingMessage.remove();
 
     if (response.content && response.content.length > 0) {
-      const assistantText = response.content
-        .filter((block) => block.type === "text")
-        .map((block) => block.text)
+      const assistantText = (response?.content || [])
+        .filter((b) => b && b.type === "text" && typeof b.text === "string")
+        .map((b) => b.text)
         .join("");
 
       if (assistantText) {
@@ -485,9 +486,10 @@ const ChatApp = {
   },
 
   updateSendButton() {
-    const message = this.elements.messageInput.value.trim();
-    const maxLength = this.state.config?.validation?.maxMessageLength || 4000;
-    const isValid = message && message.length <= maxLength;
+    const msg = this.elements.messageInput.value.trim();
+    const max = this.state.config?.validation?.maxMessageLength || 4000;
+    const hasModel = Boolean(this.elements.modelSelector?.value);
+    const isValid = hasModel && msg && msg.length <= max;
     this.elements.sendBtn.disabled = !isValid;
   },
 
@@ -530,22 +532,25 @@ const ChatApp = {
   addMessage(content, isUser, isError = false) {
     this.hidePrivacyNotice();
 
-    const message = document.createElement("div");
-    const messageClasses = this.buildMessageClasses(isUser, isError);
-    message.className = messageClasses;
+    const wrap = document.createElement("div");
+    wrap.className = this.buildMessageClasses(isUser, isError);
 
-    const formattedContent =
-      isUser || isError ? content : this.formatMessage(content);
-    const avatar = isUser ? "U" : "AI";
+    const avatarEl = document.createElement("div");
+    avatarEl.className = "message-avatar";
+    avatarEl.textContent = isUser ? "U" : "AI";
 
-    message.innerHTML = `
-      <div class="message-avatar">${avatar}</div>
-      <div class="message-content">${formattedContent}</div>
-    `;
+    const contentEl = document.createElement("div");
+    contentEl.className = "message-content";
 
-    this.elements.chatMessages.appendChild(message);
+    if (isUser || isError) {
+      contentEl.textContent = content || "";
+    } else {
+      contentEl.innerHTML = this.formatMessage(content || "");
+    }
 
-    return message;
+    wrap.append(avatarEl, contentEl);
+    this.elements.chatMessages.appendChild(wrap);
+    return wrap;
   },
 
   buildMessageClasses(isUser, isError) {

@@ -8,14 +8,13 @@ import (
 )
 
 func SecurityHeaders(cfg *config.Config) func(http.Handler) http.Handler {
-	allowedEndpoints := strings.Join(cfg.Security.AllowedAPIEndpoints, " ")
-	cspHeader := "default-src 'self'; " +
-		"connect-src 'self' " + allowedEndpoints + "; " +
+	allowed := strings.Join(cfg.Security.AllowedAPIEndpoints, " ")
+	csp := "default-src 'self'; " +
+		"connect-src 'self' " + allowed + "; " +
 		"style-src 'self' 'unsafe-inline'; " +
 		"script-src 'self'; " +
-		"img-src 'self'; " +
-		"object-src 'none'; " +
-		"base-uri 'self'"
+		"img-src 'self' data:; " +
+		"object-src 'none'; base-uri 'self'"
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,12 +22,13 @@ func SecurityHeaders(cfg *config.Config) func(http.Handler) http.Handler {
 			w.Header().Set("Referrer-Policy", "no-referrer")
 			w.Header().Set("Permissions-Policy", "geolocation=()")
 			w.Header().Set("X-Frame-Options", "DENY")
-			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
 			w.Header().Set("Cross-Origin-Resource-Policy", "same-site")
-			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
-			w.Header().Set("X-XSS-Protection", "1; mode=block")
-			w.Header().Set("Cross-Origin-Embedder-Policy", "require-corp")
-			w.Header().Set("Content-Security-Policy", cspHeader)
+			w.Header().Set("Content-Security-Policy", csp)
+
+			if cfg.Security.EnableHSTS {
+				w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+			}
+
 			next.ServeHTTP(w, r)
 		})
 	}

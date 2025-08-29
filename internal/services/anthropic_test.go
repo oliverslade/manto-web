@@ -149,7 +149,7 @@ func TestServiceErrorHandlingBehavior(t *testing.T) {
 		service.config.Anthropic.BaseURL = "://invalid-url"
 		defer func() { service.config.Anthropic.BaseURL = originalURL }()
 
-		_, err := service.GetModels("sk-ant-validkey123", "test-request-id")
+		_, err := service.GetModels("sk-ant-validkey123")
 		if err == nil {
 			t.Error("expected error for invalid URL")
 		}
@@ -160,7 +160,7 @@ func TestServiceErrorHandlingBehavior(t *testing.T) {
 	})
 
 	t.Run("SendMessage with invalid request returns error", func(t *testing.T) {
-		_, err := service.SendMessage("sk-ant-validkey123", nil, "test-request-id")
+		_, err := service.SendMessage("sk-ant-validkey123", nil)
 		if err == nil {
 			t.Error("expected error for nil request")
 		}

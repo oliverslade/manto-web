@@ -67,9 +67,6 @@ func TestConfigHandlerBehavior(t *testing.T) {
 					t.Errorf("expected anthropicKeyPrefix 'sk-ant-', got %v", api["anthropicKeyPrefix"])
 				}
 
-				if api["preferredModelId"] != "claude-3-5-haiku" {
-					t.Errorf("expected preferredModelId 'claude-3-5-haiku', got %v", api["preferredModelId"])
-				}
 
 				return nil
 			},
@@ -202,14 +199,7 @@ func TestMessagesHandlerBehavior(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "Message too long",
 		},
-		{
-			name:           "zero max tokens returns 400",
-			method:         "POST",
-			headers:        map[string]string{"x-api-key": "sk-ant-1234567890"},
-			body:           `{"model":"claude-3-haiku","messages":[{"role":"user","content":"hello"}],"max_tokens":0}`,
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  "MaxTokens must be greater than 0",
-		},
+		// max_tokens validation removed - server now controls this value
 	}
 
 	for _, tt := range tests {

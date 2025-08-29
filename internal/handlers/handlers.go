@@ -28,26 +28,14 @@ func (h *APIHandlers) ConfigHandler(w http.ResponseWriter, r *http.Request) {
 			{
 				"name":        "anthropic",
 				"displayName": "Anthropic",
-				"apiEndpoint": h.config.Anthropic.BaseURL,
-				"apiVersion":  h.config.Anthropic.APIVersion,
 			},
 		},
 		"api": map[string]interface{}{
 			"anthropicKeyPrefix": h.config.Anthropic.KeyPrefix,
-			"preferredModelId":   h.config.Anthropic.DefaultModel,
-			"endpoints": map[string]string{
-				"models":   "/api/models",
-				"messages": "/api/messages",
-			},
 		},
 		"validation": map[string]interface{}{
 			"maxMessageLength": h.config.Validation.MaxMessageLength,
 			"minApiKeyLength":  h.config.Security.APIKeyMinLength,
-		},
-		"models": map[string]interface{}{
-			"maxTokens":     h.config.Anthropic.MaxTokens,
-			"temperature":   h.config.Anthropic.Temperature,
-			"systemMessage": h.config.Anthropic.SystemMessage,
 		},
 		"version": "2.0.0",
 	}
@@ -123,10 +111,9 @@ func (h *APIHandlers) MessagesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if messageRequest.MaxTokens <= 0 {
-		writeJSONError(w, http.StatusBadRequest, "MaxTokens must be greater than 0", "")
-		return
-	}
+	messageRequest.MaxTokens = h.config.Anthropic.MaxTokens
+	messageRequest.Temperature = &h.config.Anthropic.Temperature
+	messageRequest.System = &h.config.Anthropic.SystemMessage
 
 	response, err := h.anthropicService.SendMessage(apiKey, &messageRequest, requestID)
 	if err != nil {

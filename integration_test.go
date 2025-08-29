@@ -146,7 +146,7 @@ func TestApplicationBehaviorIntegration(t *testing.T) {
 			t.Fatalf("failed to parse config JSON: %v", err)
 		}
 
-		expectedSections := []string{"api", "providers", "validation", "models", "version"}
+		expectedSections := []string{"api", "providers", "validation", "version"}
 		for _, section := range expectedSections {
 			if _, ok := configData[section]; !ok {
 				t.Errorf("config should contain %s section", section)

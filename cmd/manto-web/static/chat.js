@@ -11,15 +11,13 @@ const UI_CONFIG = {
   },
 };
 
-let SERVER_CONFIG = null;
 const validate = {
-  apiKey: (key) =>
-    key?.trim().length >= (SERVER_CONFIG?.validation?.minApiKeyLength || 10),
-  anthropicKey: (key) =>
-    key?.startsWith(SERVER_CONFIG?.api?.anthropicKeyPrefix || "sk-ant-"),
-  message: (msg) =>
-    msg?.trim() &&
-    msg.length <= (SERVER_CONFIG?.validation?.maxMessageLength || 4000),
+  apiKey: (key, config) =>
+    key?.trim().length >= (config?.validation?.minApiKeyLength || 10),
+  anthropicKey: (key, config) =>
+    key?.startsWith(config?.api?.anthropicKeyPrefix || "sk-ant-"),
+  message: (msg, config) =>
+    msg?.trim() && msg.length <= (config?.validation?.maxMessageLength || 4000),
   provider: (provider) => Boolean(provider),
   model: (model) => Boolean(model),
 };
@@ -117,7 +115,6 @@ const ChatApp = {
   loadConfig() {
     if (window.MantoConfig?.providers) {
       this.state.config = window.MantoConfig;
-      SERVER_CONFIG = window.MantoConfig; // Store server config globally
       this.populateProviders();
     } else {
       console.warn("Config not found, using fallback");
@@ -184,12 +181,10 @@ const ChatApp = {
   },
 
   setDefaultModel(models, select) {
-    const preferredModelId =
-      SERVER_CONFIG?.api?.preferredModelId || "claude-3-5-haiku";
     const preferredIndex = models.findIndex(
       (model) =>
-        model.id.includes(preferredModelId) ||
-        model.display_name?.toLowerCase().includes("haiku 3.5")
+        model.id.includes("haiku") ||
+        model.display_name?.toLowerCase().includes("haiku")
     );
 
     if (preferredIndex >= 0) {
@@ -210,9 +205,7 @@ const ChatApp = {
     }
 
     try {
-      const modelsEndpoint =
-        SERVER_CONFIG?.api?.endpoints?.models || "/api/models";
-      const response = await fetch(modelsEndpoint, {
+      const response = await fetch("/api/models", {
         method: "GET",
         headers: {
           "x-api-key": apiKey,
@@ -238,25 +231,12 @@ const ChatApp = {
 
   async sendMessageToApi(model, messages) {
     try {
-      const messagesEndpoint =
-        SERVER_CONFIG?.api?.endpoints?.messages || "/api/messages";
-      const maxTokens = SERVER_CONFIG?.models?.maxTokens || 1024;
-      const temperature = SERVER_CONFIG?.models?.temperature || 0.7;
-
-      const systemMessage = SERVER_CONFIG?.models?.systemMessage || undefined;
-
       const requestBody = {
         model: model,
         messages: messages,
-        max_tokens: maxTokens,
-        temperature: temperature,
       };
 
-      if (systemMessage) {
-        requestBody.system = systemMessage;
-      }
-
-      const response = await fetch(messagesEndpoint, {
+      const response = await fetch("/api/messages", {
         method: "POST",
         headers: {
           "x-api-key": this.state.apiKey,
@@ -353,12 +333,15 @@ const ChatApp = {
       return false;
     }
 
-    if (!validate.apiKey(key)) {
+    if (!validate.apiKey(key, this.state.config)) {
       showValidationMessage(UI_CONFIG.MESSAGES.INVALID_API_KEY, true);
       return false;
     }
 
-    if (provider === "anthropic" && !validate.anthropicKey(key)) {
+    if (
+      provider === "anthropic" &&
+      !validate.anthropicKey(key, this.state.config)
+    ) {
       showValidationMessage(UI_CONFIG.MESSAGES.INVALID_ANTHROPIC_KEY, true);
       return false;
     }
@@ -417,8 +400,8 @@ const ChatApp = {
     const message = this.elements.messageInput.value.trim();
     if (!message) return null;
 
-    if (!validate.message(message)) {
-      const maxLength = SERVER_CONFIG?.validation?.maxMessageLength || 4000;
+    if (!validate.message(message, this.state.config)) {
+      const maxLength = this.state.config?.validation?.maxMessageLength || 4000;
       showUserError(`Message too long (max ${maxLength} characters)`);
       return null;
     }
@@ -503,7 +486,7 @@ const ChatApp = {
 
   updateSendButton() {
     const message = this.elements.messageInput.value.trim();
-    const maxLength = SERVER_CONFIG?.validation?.maxMessageLength || 4000;
+    const maxLength = this.state.config?.validation?.maxMessageLength || 4000;
     const isValid = message && message.length <= maxLength;
     this.elements.sendBtn.disabled = !isValid;
   },

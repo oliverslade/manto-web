@@ -23,7 +23,7 @@ When you use provider apps (like Claude.ai, ChatGPT web interface, etc.), your c
 - Your conversations never touch Manto servers—they go directly from your browser to the AI provider
 - API calls are typically not stored long-term by providers (unlike web app conversations)
 - No conversation history builds up in anyone's system
-- You maintain full control over your data—it lives only on your machine
+- You maintain full control over your data, it lives only on your machine
 
 ## Core principles
 

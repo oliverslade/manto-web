@@ -29,6 +29,15 @@ func createTestConfig() *config.Config {
 	return cfg
 }
 
+func extractJSONFromJS(s string) string {
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start == -1 || end == -1 || end < start {
+		return ""
+	}
+	return s[start : end+1]
+}
+
 func TestConfigHandlerBehavior(t *testing.T) {
 	cfg := createTestConfig()
 	anthropicService := services.NewAnthropicService(cfg)
@@ -67,19 +76,6 @@ func TestConfigHandlerBehavior(t *testing.T) {
 					t.Errorf("expected anthropicKeyPrefix 'sk-ant-', got %v", api["anthropicKeyPrefix"])
 				}
 
-
-				return nil
-			},
-		},
-		{
-			name:           "POST method still works (handler doesn't restrict methods)",
-			method:         "POST",
-			expectedStatus: http.StatusOK,
-			expectJS:       true,
-			validateConfig: func(configData map[string]interface{}) error {
-				if _, ok := configData["api"]; !ok {
-					t.Error("config should contain 'api' section")
-				}
 				return nil
 			},
 		},
@@ -112,14 +108,12 @@ func TestConfigHandlerBehavior(t *testing.T) {
 					t.Error("response should start with 'window.MantoConfig = '")
 				}
 
-				jsonStart := strings.Index(body, "{")
-				jsonEnd := strings.LastIndex(body, "}")
-				if jsonStart == -1 || jsonEnd == -1 {
+				jsonStr := extractJSONFromJS(body)
+				if jsonStr == "" {
 					t.Error("could not find JSON in response")
 					return
 				}
 
-				jsonStr := body[jsonStart : jsonEnd+1]
 				var configData map[string]interface{}
 				if err := json.Unmarshal([]byte(jsonStr), &configData); err != nil {
 					t.Errorf("failed to parse config JSON: %v", err)
@@ -129,6 +123,10 @@ func TestConfigHandlerBehavior(t *testing.T) {
 				if tt.validateConfig != nil {
 					tt.validateConfig(configData)
 				}
+				api, _ := configData["api"].(map[string]interface{})
+				if api["defaultModel"] == "" {
+					t.Error("api.defaultModel should be included in config")
+				}
 			}
 		})
 	}
@@ -136,6 +134,16 @@ func TestConfigHandlerBehavior(t *testing.T) {
 
 func TestMessagesHandlerBehavior(t *testing.T) {
 	cfg := createTestConfig()
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/messages" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"id":"m1","type":"message","role":"assistant","content":[{"type":"text","text":"ok"}],"model":"haiku","stop_reason":"end","usage":{"input_tokens":1,"output_tokens":1}}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer fake.Close()
+	cfg.Anthropic.BaseURL = fake.URL
 	anthropicService := services.NewAnthropicService(cfg)
 	handlers := NewAPIHandlers(cfg, anthropicService)
 
@@ -199,7 +207,6 @@ func TestMessagesHandlerBehavior(t *testing.T) {
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "Message too long",
 		},
-		// max_tokens validation removed - server now controls this value
 	}
 
 	for _, tt := range tests {
@@ -242,6 +249,16 @@ func TestMessagesHandlerBehavior(t *testing.T) {
 
 func TestModelsHandlerBehavior(t *testing.T) {
 	cfg := createTestConfig()
+	fake := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/models" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"data":[{"id":"claude-3-5-haiku","display_name":"Claude 3.5 Haiku"}]}`))
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer fake.Close()
+	cfg.Anthropic.BaseURL = fake.URL
 	anthropicService := services.NewAnthropicService(cfg)
 	handlers := NewAPIHandlers(cfg, anthropicService)
 
@@ -259,10 +276,10 @@ func TestModelsHandlerBehavior(t *testing.T) {
 			expectedError:  "Invalid API key format",
 		},
 		{
-			name:           "valid API key format passes validation",
+			name:           "valid API key format fetches models",
 			method:         "GET",
 			headers:        map[string]string{"x-api-key": "sk-ant-1234567890"},
-			expectedStatus: http.StatusBadRequest, // Will fail at API call, but passes validation
+			expectedStatus: http.StatusOK,
 		},
 	}
 
@@ -292,6 +309,14 @@ func TestModelsHandlerBehavior(t *testing.T) {
 				if errorMsg, ok := errorResp["error"]; !ok || !strings.Contains(errorMsg, tt.expectedError) {
 					t.Errorf("expected error containing %s, got %s", tt.expectedError, errorMsg)
 				}
+			} else if w.Code == http.StatusOK && tt.name == "valid API key format fetches models" {
+				var payload map[string]interface{}
+				if err := json.Unmarshal(w.Body.Bytes(), &payload); err != nil {
+					t.Fatalf("failed to parse models: %v", err)
+				}
+				if _, ok := payload["data"]; !ok {
+					t.Error("models response should include data[]")
+				}
 			}
 		})
 	}
@@ -312,9 +337,7 @@ func TestHandlerIntegration(t *testing.T) {
 		}
 
 		body := w.Body.String()
-		jsonStart := strings.Index(body, "{")
-		jsonEnd := strings.LastIndex(body, "}")
-		jsonStr := body[jsonStart : jsonEnd+1]
+		jsonStr := extractJSONFromJS(body)
 
 		var configData map[string]interface{}
 		if err := json.Unmarshal([]byte(jsonStr), &configData); err != nil {

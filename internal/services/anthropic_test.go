@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/manto/manto-web/internal/config"
@@ -154,7 +155,7 @@ func TestServiceErrorHandlingBehavior(t *testing.T) {
 			t.Error("expected error for invalid URL")
 		}
 
-		if err != nil && !containsAnyString(err.Error(), []string{"failed to create request", "invalid URL"}) {
+		if err != nil && !strings.Contains(err.Error(), "failed to create request") && !strings.Contains(err.Error(), "invalid URL") {
 			t.Errorf("expected URL-related error, got: %v", err)
 		}
 	})
@@ -165,17 +166,4 @@ func TestServiceErrorHandlingBehavior(t *testing.T) {
 			t.Error("expected error for nil request")
 		}
 	})
-}
-
-func containsAnyString(text string, substrings []string) bool {
-	for _, substring := range substrings {
-		if len(text) >= len(substring) {
-			for i := 0; i <= len(text)-len(substring); i++ {
-				if text[i:i+len(substring)] == substring {
-					return true
-				}
-			}
-		}
-	}
-	return false
 }

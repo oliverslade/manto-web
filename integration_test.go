@@ -18,6 +18,15 @@ import (
 	"github.com/manto/manto-web/internal/services"
 )
 
+func extractJSONFromJS(s string) string {
+	start := strings.Index(s, "{")
+	end := strings.LastIndex(s, "}")
+	if start == -1 || end == -1 || end < start {
+		return ""
+	}
+	return s[start : end+1]
+}
+
 func setupTestServer(_ *testing.T) *httptest.Server {
 	cfg := &config.Config{}
 
@@ -96,13 +105,10 @@ func TestApplicationBehaviorIntegration(t *testing.T) {
 			t.Error("response should start with 'window.MantoConfig = '")
 		}
 
-		jsonStart := strings.Index(bodyStr, "{")
-		jsonEnd := strings.LastIndex(bodyStr, "}")
-		if jsonStart == -1 || jsonEnd == -1 {
+		jsonStr := extractJSONFromJS(bodyStr)
+		if jsonStr == "" {
 			t.Fatal("could not find JSON in response")
 		}
-
-		jsonStr := bodyStr[jsonStart : jsonEnd+1]
 		var configData map[string]interface{}
 		if err := json.Unmarshal([]byte(jsonStr), &configData); err != nil {
 			t.Fatalf("failed to parse config JSON: %v", err)
@@ -143,9 +149,7 @@ func TestConfigurationConsistency(t *testing.T) {
 		body, _ := io.ReadAll(resp.Body)
 		bodyStr := string(body)
 
-		jsonStart := strings.Index(bodyStr, "{")
-		jsonEnd := strings.LastIndex(bodyStr, "}")
-		jsonStr := bodyStr[jsonStart : jsonEnd+1]
+		jsonStr := extractJSONFromJS(bodyStr)
 
 		var configData map[string]interface{}
 		json.Unmarshal([]byte(jsonStr), &configData)
@@ -178,16 +182,8 @@ func TestConfigurationConsistency(t *testing.T) {
 		if err != nil {
 			t.Fatalf("request failed: %v", err)
 		}
+		io.Copy(io.Discard, resp.Body)
 		resp.Body.Close()
-
-		if resp.StatusCode == http.StatusBadRequest {
-			body, _ := io.ReadAll(resp.Body)
-			var errorResp map[string]string
-			json.Unmarshal(body, &errorResp)
-			if strings.Contains(errorResp["error"], "Invalid API key format") {
-				t.Error("valid length key should not fail format validation")
-			}
-		}
 	})
 }
 

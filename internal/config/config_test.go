@@ -1,7 +1,7 @@
 package config
 
 import (
-	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -9,24 +9,15 @@ import (
 func TestConfigLoadBehavior(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupEnv    func()
 		setupFiles  func(tempDir string)
-		cleanupEnv  func()
 		expectError bool
 		validate    func(*Config) error
 	}{
 		{
 			name: "loads defaults when no env vars or files",
-			setupEnv: func() {
-				// Clear any existing env vars
-				os.Unsetenv("GO_ENV")
-				os.Unsetenv("PORT")
-				os.Unsetenv("LOG_LEVEL")
-			},
 			setupFiles: func(tempDir string) {
 				// No config files
 			},
-			cleanupEnv: func() {},
 			validate: func(cfg *Config) error {
 				if cfg.Server.Port != 8080 {
 					t.Errorf("expected default port 8080, got %d", cfg.Server.Port)
@@ -41,18 +32,8 @@ func TestConfigLoadBehavior(t *testing.T) {
 			},
 		},
 		{
-			name: "environment variables override defaults",
-			setupEnv: func() {
-				os.Setenv("PORT", "9999")
-				os.Setenv("LOG_LEVEL", "debug")
-				os.Setenv("ANTHROPIC_MAX_TOKENS", "2048")
-			},
+			name:       "environment variables override defaults",
 			setupFiles: func(tempDir string) {},
-			cleanupEnv: func() {
-				os.Unsetenv("PORT")
-				os.Unsetenv("LOG_LEVEL")
-				os.Unsetenv("ANTHROPIC_MAX_TOKENS")
-			},
 			validate: func(cfg *Config) error {
 				if cfg.Server.Port != 9999 {
 					t.Errorf("expected port 9999 from env, got %d", cfg.Server.Port)
@@ -67,27 +48,13 @@ func TestConfigLoadBehavior(t *testing.T) {
 			},
 		},
 		{
-			name: "validates configuration values",
-			setupEnv: func() {
-				os.Setenv("PORT", "99999") // Invalid port
-			},
-			setupFiles: func(tempDir string) {},
-			cleanupEnv: func() {
-				os.Unsetenv("PORT")
-			},
+			name:        "validates configuration values",
+			setupFiles:  func(tempDir string) {},
 			expectError: true,
 		},
 		{
-			name: "handles duration parsing",
-			setupEnv: func() {
-				os.Setenv("READ_TIMEOUT", "45s")
-				os.Setenv("ANTHROPIC_TIMEOUT", "2m")
-			},
+			name:       "handles duration parsing",
 			setupFiles: func(tempDir string) {},
-			cleanupEnv: func() {
-				os.Unsetenv("READ_TIMEOUT")
-				os.Unsetenv("ANTHROPIC_TIMEOUT")
-			},
 			validate: func(cfg *Config) error {
 				if cfg.Server.ReadTimeout.Duration != 45*time.Second {
 					t.Errorf("expected read timeout 45s, got %v", cfg.Server.ReadTimeout.Duration)
@@ -99,16 +66,8 @@ func TestConfigLoadBehavior(t *testing.T) {
 			},
 		},
 		{
-			name: "handles comma-separated lists",
-			setupEnv: func() {
-				os.Setenv("ALLOWED_API_ENDPOINTS", "https://api.anthropic.com,https://api.example.com")
-				os.Setenv("ALLOWED_HOSTS", "localhost,example.com")
-			},
+			name:       "handles comma-separated lists",
 			setupFiles: func(tempDir string) {},
-			cleanupEnv: func() {
-				os.Unsetenv("ALLOWED_API_ENDPOINTS")
-				os.Unsetenv("ALLOWED_HOSTS")
-			},
 			validate: func(cfg *Config) error {
 				expectedEndpoints := []string{"https://api.anthropic.com", "https://api.example.com"}
 				if len(cfg.Security.AllowedAPIEndpoints) != 2 {
@@ -126,8 +85,22 @@ func TestConfigLoadBehavior(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.setupEnv()
-			defer tt.cleanupEnv()
+			if strings.Contains(tt.name, "override") {
+				t.Setenv("PORT", "9999")
+				t.Setenv("LOG_LEVEL", "debug")
+				t.Setenv("ANTHROPIC_MAX_TOKENS", "2048")
+			}
+			if strings.Contains(tt.name, "validates") {
+				t.Setenv("PORT", "99999")
+			}
+			if strings.Contains(tt.name, "duration") {
+				t.Setenv("READ_TIMEOUT", "45s")
+				t.Setenv("ANTHROPIC_TIMEOUT", "2m")
+			}
+			if strings.Contains(tt.name, "comma-separated") {
+				t.Setenv("ALLOWED_API_ENDPOINTS", "https://api.anthropic.com,https://api.example.com")
+				t.Setenv("ALLOWED_HOSTS", "localhost,example.com")
+			}
 
 			cfg, err := Load()
 
@@ -185,14 +158,11 @@ func TestEnvironmentDetectionBehavior(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Unsetenv("GO_ENV")
-			os.Unsetenv("ENVIRONMENT")
-
 			if tt.goEnv != "" {
-				os.Setenv("GO_ENV", tt.goEnv)
+				t.Setenv("GO_ENV", tt.goEnv)
 			}
 			if tt.environment != "" {
-				os.Setenv("ENVIRONMENT", tt.environment)
+				t.Setenv("ENVIRONMENT", tt.environment)
 			}
 
 			env := GetEnvironment()
@@ -200,9 +170,6 @@ func TestEnvironmentDetectionBehavior(t *testing.T) {
 			if env != tt.expectedEnv {
 				t.Errorf("expected environment %s, got %s", tt.expectedEnv, env)
 			}
-
-			os.Unsetenv("GO_ENV")
-			os.Unsetenv("ENVIRONMENT")
 		})
 	}
 }
